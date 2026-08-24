@@ -1,5 +1,7 @@
 # Hard Bop 24
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A single-page web player for **Hard Bop 24**, a 24-hour hard bop internet radio station streamed
 from `radio.lysn.bar` (station shortcode `hardbop24`). Installable as a PWA, with offline-capable
 shell caching, live "now playing" metadata, play history, and automatic stream reconnection.
