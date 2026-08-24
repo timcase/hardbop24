@@ -2,21 +2,22 @@
 // The audio stream and the metadata feed are independent: the metadata path never
 // touches the <audio> element, so polling can't interrupt playback.
 
-// Opus is the station's default mount and sounds better per byte, but its Ogg container
-// isn't universally supported. Ask the browser instead of sniffing the user agent:
-// canPlayType returns "probably" | "maybe" | "", and anything non-empty is worth trying.
-const MOUNTS = {
-  opus: { url: "https://radio.lysn.bar/listen/hardbop24/radio.opus",
-          type: 'application/ogg; codecs="opus"', label: "Opus \u00b7 128 kbps" },
-  mp3:  { url: "https://radio.lysn.bar/listen/hardbop24/radio.mp3",
-          type: "audio/mpeg", label: "Stereo \u00b7 320 kbps" }
-};
+// Mounts in preference order, tried in sequence. Deliberately NOT gated on
+// canPlayType: it reports "" for Ogg/Opus on iOS Safari even though playback works
+// there (confirmed on device, and AzuraCast's own player never calls canPlayType at
+// all). Predicting support gets it wrong, so attempt it and react to a real failure.
+const MOUNTS = [
+  {
+    url: "https://radio.lysn.bar/listen/hardbop24/radio.opus",
+    label: "Opus \u00b7 128 kbps"
+  },
+  {
+    url: "https://radio.lysn.bar/listen/hardbop24/radio.mp3",
+    label: "Stereo \u00b7 320 kbps"
+  }
+];
 
-const MOUNT = document.createElement("audio").canPlayType(MOUNTS.opus.type)
-  ? MOUNTS.opus
-  : MOUNTS.mp3;
-
-const STREAM_URL = MOUNT.url;
+const MOUNT_STORAGE_KEY = "hbop24.mount";
 const METADATA_URL =
   "https://radio.lysn.bar/api/nowplaying_static/hardbop24.json";
 const POLL_MS = 10000;
@@ -67,6 +68,11 @@ let hasStarted = false;
 let stationOnline = true;
 let lastSongId = null;
 let lastHistoryKey = null;
+let mountIndex = 0;
+// True once the current mount has actually produced audio. A mount that has already
+// played is not a codec problem, so a later failure on it must be treated as an outage
+// rather than a reason to downgrade the listener permanently.
+let mountProven = false;
 
 /* ---------- metadata ---------- */
 
@@ -234,9 +240,53 @@ function refreshStatus() {
   statusEl.classList.toggle("hidden", message === "");
 }
 
+function activeMount() {
+  return MOUNTS[mountIndex];
+}
+
+function showMount() {
+  setText(specEl, activeMount().label);
+}
+
+// localStorage throws outright in some privacy contexts, so every access is guarded.
+function readStoredMount() {
+  try {
+    return localStorage.getItem(MOUNT_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function storeMount(url) {
+  try {
+    localStorage.setItem(MOUNT_STORAGE_KEY, url);
+  } catch {
+    // Not being able to remember is harmless — the ladder still works.
+  }
+}
+
+// A remembered mount is a hint, not a decision: it only reorders the ladder, and a
+// failure still falls through the remaining entries as normal.
+function applyStoredMount() {
+  const stored = readStoredMount();
+  if (!stored) return;
+  const i = MOUNTS.findIndex((m) => m.url === stored);
+  if (i > 0) mountIndex = i;
+}
+
+// Returns false when the ladder is exhausted.
+function advanceMount() {
+  if (mountIndex >= MOUNTS.length - 1) return false;
+  mountIndex++;
+  mountProven = false;
+  showMount();
+  console.warn("Falling back to", activeMount().label);
+  return true;
+}
+
 function startPlayback() {
   wantsPlayback = true;
-  if (!audio.src) audio.src = STREAM_URL;
+  if (!audio.src) audio.src = activeMount().url;
   audio.play().catch((err) => {
     console.warn("Playback rejected:", err);
     // NotAllowedError means the autoplay policy blocked us and retrying is pointless;
@@ -284,7 +334,7 @@ function reconnectNow() {
   // abandons a socket that died with the network still holding it open.
   resetWatchdog();
   reconnecting = true;
-  audio.src = STREAM_URL;
+  audio.src = activeMount().url;
   audio.load();
   audio.play().catch((err) => {
     console.warn("Reconnect failed:", err);
@@ -338,12 +388,37 @@ audio.addEventListener("playing", () => {
   cancelReconnect();
   resetWatchdog();
   hasStarted = true;
+  mountProven = true;
+  storeMount(activeMount().url);
   setLabel();
   refreshStatus();
 });
 audio.addEventListener("waiting", () => setText(toggle, "Cueing"));
 audio.addEventListener("error", () => {
-  console.warn("Stream error:", audio.error && audio.error.message);
+  const err = audio.error;
+  console.warn("Stream error:", err && err.message, "code", err && err.code);
+
+  // MEDIA_ERR_SRC_NOT_SUPPORTED: this browser genuinely cannot play this mount. Move
+  // down the ladder and retry at once — backing off would only delay a switch that has
+  // nothing to do with the network.
+  // The same code is reported for a mount that is simply down, so only treat it as a
+  // codec problem if this mount has never played. Otherwise it is an outage, and
+  // downgrading would strand the listener on MP3 long after the mount came back.
+  if (err && err.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED && !mountProven) {
+    if (advanceMount()) {
+      cancelReconnect();
+      reconnectNow();
+    } else {
+      wantsPlayback = false;
+      setText(statusEl, "Stream unavailable");
+      statusEl.classList.remove("hidden");
+      setLabel();
+    }
+    return;
+  }
+
+  // Anything else is transient — network, decode, abort — and the existing backoff,
+  // watchdog and online-handler behaviour is already tuned for it.
   scheduleReconnect();
 });
 
@@ -366,7 +441,8 @@ if ("mediaSession" in navigator) {
   navigator.mediaSession.setActionHandler("stop", stopPlayback);
 }
 
-setText(specEl, MOUNT.label);
+applyStoredMount();
+showMount();
 refreshStatus();
 refreshMetadata();
 setInterval(refreshMetadata, POLL_MS);
