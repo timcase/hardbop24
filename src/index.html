@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hard Bop 24</title>
+    <link rel="stylesheet" href="player.css" />
+
+    <link rel="icon" href="icons/hardbop24.svg" type="image/svg+xml" />
+    <link rel="icon" href="icons/hardbop24.ico" sizes="32x32" />
+    <!-- iOS ignores manifest icons for the home screen, so this is not redundant. -->
+    <link rel="apple-touch-icon" href="icons/hardbop24-180.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
+
+    <meta name="theme-color" content="#ab3811" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Hard Bop 24" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  </head>
+  <body>
+    <main class="player">
+      <h1 class="spine">Hard Bop 24</h1>
+
+      <div class="jacket">
+        <header class="masthead">
+          <p class="badge" id="onair">On air</p>
+          <p class="spec" id="spec"></p>
+        </header>
+
+        <img id="art" class="art" src="" alt="Album artwork" />
+
+        <div class="meta" id="meta">
+          <h2 id="title" class="title">Tuning in</h2>
+          <div class="rule"></div>
+          <p id="artist" class="artist"></p>
+          <p id="album" class="album hidden"></p>
+        </div>
+
+        <button id="toggle" class="toggle" type="button">Play</button>
+        <p
+          id="status"
+          class="status hidden"
+          role="status"
+          aria-live="polite"
+        ></p>
+      </div>
+
+      <audio id="audio" preload="none"></audio>
+    </main>
+
+    <script src="player.js"></script>
+  </body>
+</html>

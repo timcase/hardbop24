@@ -2,9 +2,27 @@
 // The audio stream and the metadata feed are independent: the metadata path never
 // touches the <audio> element, so polling can't interrupt playback.
 
-const STREAM_URL = "https://radio.lysn.bar/listen/hardbop24/radio.mp3";
-const METADATA_URL = "https://radio.lysn.bar/api/nowplaying_static/hardbop24.json";
+// Opus is the station's default mount and sounds better per byte, but its Ogg container
+// isn't universally supported. Ask the browser instead of sniffing the user agent:
+// canPlayType returns "probably" | "maybe" | "", and anything non-empty is worth trying.
+const MOUNTS = {
+  opus: { url: "https://radio.lysn.bar/listen/hardbop24/radio.opus",
+          type: 'application/ogg; codecs="opus"', label: "Opus \u00b7 128 kbps" },
+  mp3:  { url: "https://radio.lysn.bar/listen/hardbop24/radio.mp3",
+          type: "audio/mpeg", label: "Stereo \u00b7 320 kbps" }
+};
+
+const MOUNT = document.createElement("audio").canPlayType(MOUNTS.opus.type)
+  ? MOUNTS.opus
+  : MOUNTS.mp3;
+
+const STREAM_URL = MOUNT.url;
+const METADATA_URL =
+  "https://radio.lysn.bar/api/nowplaying_static/hardbop24.json";
 const POLL_MS = 10000;
+
+// How long to wait for a new sleeve to decode before showing the track anyway.
+const ART_TIMEOUT_MS = 2000;
 
 // Stall watchdog: how often to check for progress, and how many consecutive
 // no-progress checks count as a dead stream. A healthy start takes ~2s; the longer
@@ -25,6 +43,9 @@ const titleEl = document.getElementById("title");
 const artistEl = document.getElementById("artist");
 const albumEl = document.getElementById("album");
 const statusEl = document.getElementById("status");
+const onairEl = document.getElementById("onair");
+const metaEl = document.getElementById("meta");
+const specEl = document.getElementById("spec");
 const toggle = document.getElementById("toggle");
 const audio = document.getElementById("audio");
 
@@ -50,6 +71,22 @@ function setText(el, value) {
   if (el.textContent !== value) el.textContent = value;
 }
 
+// Decode the new sleeve off-screen before it goes on the page, so the type can never
+// sit against the previous track's cover. Resolves to a usable URL either way: the
+// placeholder if the image fails, and the real URL anyway once ART_TIMEOUT_MS is up, so
+// a slow image delays the swap but can never block the metadata behind it.
+function loadArt(url) {
+  if (!url) return Promise.resolve(BLANK_ART);
+
+  const pending = new Image();
+  pending.src = url;
+
+  return Promise.race([
+    pending.decode().then(() => url).catch(() => BLANK_ART),
+    new Promise((resolve) => setTimeout(() => resolve(url), ART_TIMEOUT_MS))
+  ]);
+}
+
 function setArt(url) {
   // Reassigning an identical src would re-decode the image and flicker on every poll.
   if (!url) url = BLANK_ART;
@@ -61,7 +98,7 @@ art.addEventListener("error", () => {
   if (art.src !== BLANK_ART) art.src = BLANK_ART;
 });
 
-function updateMediaSession(song) {
+function updateMediaSession(song, artUrl) {
   if (!("mediaSession" in navigator)) return;
 
   navigator.mediaSession.metadata = new MediaMetadata({
@@ -70,14 +107,19 @@ function updateMediaSession(song) {
     album: song.album || "",
     // Sizes are omitted deliberately: artwork dimensions vary per track, and a wrong
     // hint is worse than none — the browser fetches and measures it either way.
-    artwork: song.art ? [{ src: song.art }] : []
+    artwork: artUrl && artUrl !== BLANK_ART ? [{ src: artUrl }] : [],
   });
 }
 
-function render(song) {
+async function render(song) {
   const key = song.id || song.text || "";
   if (key && key === lastSongId) return;
   lastSongId = key;
+
+  const artUrl = await loadArt(song.art);
+
+  // A newer track arrived while that was decoding — that render owns the DOM now.
+  if (key !== lastSongId) return;
 
   setText(titleEl, song.title || song.text || "Unknown track");
   setText(artistEl, song.artist || "");
@@ -86,8 +128,14 @@ function render(song) {
   setText(albumEl, album);
   albumEl.classList.toggle("hidden", album === "");
 
-  setArt(song.art);
-  updateMediaSession(song);
+  setArt(artUrl);
+  updateMediaSession(song, artUrl);
+
+  // Restart the entrance animation. Removing the class isn't enough on its own —
+  // reading offsetWidth forces the reflow that lets it re-trigger.
+  metaEl.classList.remove("enter");
+  void metaEl.offsetWidth;
+  metaEl.classList.add("enter");
 }
 
 async function refreshMetadata() {
@@ -101,7 +149,7 @@ async function refreshMetadata() {
     stationOnline = data.is_online !== false;
 
     const song = data.now_playing && data.now_playing.song;
-    if (song) render(song);
+    if (song) await render(song);
 
     refreshStatus();
   } catch (err) {
@@ -113,11 +161,13 @@ async function refreshMetadata() {
 /* ---------- playback + recovery ---------- */
 
 function refreshStatus() {
-  let message = "";
+  // The masthead badge reports the station; the status line reports our connection to it.
+  setText(onairEl, stationOnline ? "On air" : "Off air");
+  onairEl.classList.toggle("off", !stationOnline);
 
-  if (reconnectTimer) message = "Reconnecting…";
+  let message = "";
+  if (reconnectTimer || reconnecting) message = "Reconnecting";
   else if (!navigator.onLine) message = "No connection";
-  else if (!stationOnline) message = "Station offline";
 
   setText(statusEl, message);
   statusEl.classList.toggle("hidden", message === "");
@@ -195,7 +245,8 @@ setInterval(() => {
 
   if (audio.currentTime === lastTime) {
     stallCount++;
-    if (stallCount >= (hasStarted ? STALL_LIMIT : STARTUP_LIMIT)) scheduleReconnect();
+    if (stallCount >= (hasStarted ? STALL_LIMIT : STARTUP_LIMIT))
+      scheduleReconnect();
   } else {
     lastTime = audio.currentTime;
     stallCount = 0;
@@ -229,7 +280,7 @@ audio.addEventListener("playing", () => {
   setLabel();
   refreshStatus();
 });
-audio.addEventListener("waiting", () => setText(toggle, "Buffering…"));
+audio.addEventListener("waiting", () => setText(toggle, "Cueing"));
 audio.addEventListener("error", () => {
   console.warn("Stream error:", audio.error && audio.error.message);
   scheduleReconnect();
@@ -254,5 +305,15 @@ if ("mediaSession" in navigator) {
   navigator.mediaSession.setActionHandler("stop", stopPlayback);
 }
 
+setText(specEl, MOUNT.label);
+refreshStatus();
 refreshMetadata();
 setInterval(refreshMetadata, POLL_MS);
+
+if ("serviceWorker" in navigator) {
+  addEventListener("load", () =>
+    navigator.serviceWorker
+      .register("./sw.js")
+      .catch((err) => console.warn("Service worker registration failed:", err))
+  );
+}

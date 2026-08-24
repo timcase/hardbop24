@@ -1,0 +1,196 @@
+/* Hard Bop 24 — a Reid Miles / Blue Note homage. The page is a printed record jacket:
+   flat ink on board stock, hard edges, no radius, no gloss. */
+
+/* Self-hosted so the installed app renders correctly offline, and so the page makes no
+   third-party request. Declaring both axis ranges keeps the font-stretch values below
+   working as variable settings rather than synthetic widths. */
+@font-face {
+  font-family: "Archivo";
+  src: url("fonts/archivo-latin-var.woff2") format("woff2-variations");
+  font-weight: 400 900;
+  font-stretch: 62.5% 125%;
+  font-display: swap;
+}
+
+:root {
+  --paper: #ede6d6;
+  --board: #dccfb4; /* the surface the jacket sits on, so it reads as an object */
+  --ink: #16110b;
+  --flame: #ab3811; /* 5.11:1 on paper; matches the icon artwork exactly */
+  --smoke: #6c6252; /* 4.82:1 on paper */
+
+  --stock: "Archivo", "Archivo Narrow", "Helvetica Neue",
+           "Arial Narrow", Arial, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: var(--board);
+  color: var(--ink);
+  font-family: var(--stock);
+  /* A committed print look: this design is one object under one light, so it does not
+     follow the viewer's dark mode. */
+  -webkit-font-smoothing: antialiased;
+}
+
+.player {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr;
+  width: min(26rem, 100%);
+  border: 1px solid var(--ink);
+  background: var(--paper);
+}
+
+/* The signature: an LP spine, read bottom-to-top. */
+.spine {
+  margin: 0;
+  background: var(--flame);
+  color: var(--paper);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-stretch: 87.5%;
+  text-transform: uppercase;
+  letter-spacing: 0.34em;
+  text-indent: 0.34em; /* offsets the trailing letter-space so the text sits optically centred */
+}
+
+.jacket { padding: 1.25rem; }
+
+.masthead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.badge,
+.spec,
+.status {
+  margin: 0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  font-stretch: 87.5%;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+}
+
+.badge::before {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  margin-right: 0.6em;
+  background: var(--flame);
+  vertical-align: 0.05em;
+}
+
+.badge.off { color: var(--smoke); }
+.badge.off::before { background: var(--smoke); }
+
+.spec { color: var(--smoke); }
+
+.art {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border: 1px solid var(--ink);
+  background: var(--smoke);
+}
+
+.meta { margin-top: 1.1rem; }
+
+.title {
+  margin: 0;
+  font-size: clamp(2.1rem, 9vw, 2.9rem);
+  font-weight: 800;
+  font-stretch: 62.5%;
+  line-height: 0.87;
+  letter-spacing: -0.005em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+/* The hard rule under the title — the one Reid Miles gesture the layout leans on. */
+.rule {
+  width: 3.5rem;
+  height: 6px;
+  margin: 0.85rem 0 0.7rem;
+  background: var(--flame);
+}
+
+.artist {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-stretch: 75%;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.album {
+  margin: 0.3rem 0 0;
+  font-size: 0.68rem;
+  font-weight: 500;
+  font-stretch: 87.5%;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--smoke);
+}
+
+.toggle {
+  margin-top: 1.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 0;
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-stretch: 87.5%;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  cursor: pointer;
+}
+
+.toggle:hover { background: var(--flame); }
+
+.toggle:focus-visible {
+  outline: 3px solid var(--flame);
+  outline-offset: 3px;
+}
+
+.status {
+  margin-top: 0.8rem;
+  color: var(--flame);
+}
+
+.hidden { display: none; }
+
+/* Motion: one moment only — a new record dropping. The rule draws in and the type
+   settles, on load and whenever the track changes. */
+@keyframes draw { from { width: 0; } }
+@keyframes settle {
+  from { opacity: 0; transform: translateY(0.4rem); }
+}
+
+.meta .rule { animation: draw 0.55s cubic-bezier(0.2, 0.85, 0.25, 1) both; }
+.meta.enter { animation: settle 0.45s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .meta .rule,
+  .meta.enter { animation: none; }
+}
