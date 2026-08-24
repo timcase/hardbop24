@@ -19,6 +19,11 @@
   --flame: #ab3811; /* 5.11:1 on paper; matches the icon artwork exactly */
   --smoke: #6c6252; /* 4.82:1 on paper */
 
+  /* House sleeve, shared by the main cover and the history thumbnails. Shows before
+     real art arrives and stays for tracks with no embedded cover. Geometry matches
+     assets/appicon/hardbop24.svg. */
+  --house-sleeve: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200"><rect width="1200" height="1200" fill="%23ab3811"/><rect x="222.14" y="222.14" width="225.33" height="755.71" fill="%23ece5d6"/><rect x="471.09" y="222.14" width="506.77" height="755.71" fill="%23ece5d6"/></svg>');
+
   --stock: "Archivo", "Archivo Narrow", "Helvetica Neue",
            "Arial Narrow", Arial, sans-serif;
 }
@@ -106,15 +111,10 @@ body {
   aspect-ratio: 1;
   object-fit: cover;
   border: 1px solid var(--ink);
-  /* House sleeve: shows before the real cover arrives, and stays for tracks with no
-     embedded art (setArt falls back to a transparent GIF, which this shows through).
-     A loaded cover is opaque and object-fit: cover, so it paints over this entirely.
-     Living in CSS means it is painted at first style pass, before player.js runs.
-     Geometry matches assets/appicon/hardbop24.svg. */
-  background:
-    var(--flame)
-    url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200"><rect width="1200" height="1200" fill="%23ab3811"/><rect x="222.14" y="222.14" width="225.33" height="755.71" fill="%23ece5d6"/><rect x="471.09" y="222.14" width="506.77" height="755.71" fill="%23ece5d6"/></svg>')
-      center / cover no-repeat;
+  /* A loaded cover is opaque and object-fit: cover, so it paints over the sleeve
+     entirely. Living in CSS means it is painted at first style pass, before
+     player.js runs. */
+  background: var(--flame) var(--house-sleeve) center / cover no-repeat;
 }
 
 .meta { margin-top: 1.1rem; }
@@ -227,9 +227,20 @@ body {
 
 .history-row {
   display: grid;
-  grid-template-columns: auto 1fr;
-  column-gap: 0.75rem;
+  grid-template-columns: 2.5rem auto 1fr;
+  column-gap: 0.65rem;
+  align-items: center;
   padding: 0.4rem 0;
+}
+
+.history-art {
+  grid-row: span 2;
+  width: 2.5rem;
+  height: 2.5rem;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border: 1px solid var(--ink);
+  background: var(--flame) var(--house-sleeve) center / cover no-repeat;
 }
 
 .history-row + .history-row {

@@ -72,6 +72,12 @@ let mountIndex = 0;
 // rather than a reason to downgrade the listener permanently.
 let mountProven = false;
 
+// The art endpoint is keyed by media-file id, not by album, so every track of one album
+// has a different URL serving byte-identical bytes. Remembering the first URL seen per
+// album turns those into cache hits instead of repeat downloads. Keyed on artist too so
+// two records sharing a title cannot collide. Per page load; nothing persisted.
+const albumArt = new Map();
+
 /* ---------- metadata ---------- */
 
 function setText(el, value) {
@@ -82,6 +88,17 @@ function setText(el, value) {
 // sit against the previous track's cover. Resolves to a usable URL either way: the
 // placeholder if the image fails, and the real URL anyway once ART_TIMEOUT_MS is up, so
 // a slow image delays the swap but can never block the metadata behind it.
+function resolveArt(song) {
+  const key = `${song.artist || ""}\u241f${song.album || ""}`;
+  if (!song.album) return song.art || "";
+
+  const known = albumArt.get(key);
+  if (known) return known;
+
+  if (song.art) albumArt.set(key, song.art);
+  return song.art || "";
+}
+
 function loadArt(url) {
   if (!url) return Promise.resolve(BLANK_ART);
 
@@ -128,7 +145,7 @@ async function render(song) {
   if (key && key === lastSongId) return;
   lastSongId = key;
 
-  const artUrl = await loadArt(song.art);
+  const artUrl = await loadArt(resolveArt(song));
 
   // A newer track arrived while that was decoding — that render owns the DOM now.
   if (key !== lastSongId) return;
@@ -190,9 +207,20 @@ function renderHistory(entries) {
     title.className = "history-title";
     title.textContent = song.title || song.text || "Unknown track";
 
+    const thumb = document.createElement("img");
+    thumb.className = "history-art";
+    // Explicit dimensions so the row reserves its box and nothing shifts as covers
+    // arrive. Deliberately not loading="lazy": every row is visible immediately, so it
+    // would only delay them.
+    thumb.width = 40;
+    thumb.height = 40;
+    thumb.decoding = "async";
+    thumb.alt = "";
+    thumb.src = resolveArt(song) || BLANK_ART;
+
     const row = document.createElement("li");
     row.className = "history-row";
-    row.append(time, artist, title);
+    row.append(thumb, time, artist, title);
     fragment.append(row);
   }
 
