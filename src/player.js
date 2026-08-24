@@ -41,6 +41,7 @@ const art = document.getElementById("art");
 const titleEl = document.getElementById("title");
 const artistEl = document.getElementById("artist");
 const albumEl = document.getElementById("album");
+const yearEl = document.getElementById("year");
 const statusEl = document.getElementById("status");
 const onairEl = document.getElementById("onair");
 const metaEl = document.getElementById("meta");
@@ -156,6 +157,12 @@ async function render(song) {
   const album = song.album || "";
   setText(albumEl, album);
   albumEl.classList.toggle("hidden", album === "");
+
+  // AzuraCast auto-assigns this from the file's ORIGINALDATE tag — the year the
+  // record actually came out, not a reissue/remaster date.
+  const year = (song.custom_fields && song.custom_fields.original_year) || "";
+  setText(yearEl, year);
+  yearEl.classList.toggle("hidden", year === "");
 
   setArt(artUrl);
   updateMediaSession(song, artUrl);
