@@ -45,6 +45,8 @@ const albumEl = document.getElementById("album");
 const statusEl = document.getElementById("status");
 const onairEl = document.getElementById("onair");
 const metaEl = document.getElementById("meta");
+const historyEl = document.getElementById("history");
+const historyListEl = document.getElementById("history-list");
 const specEl = document.getElementById("spec");
 const toggle = document.getElementById("toggle");
 const audio = document.getElementById("audio");
@@ -64,6 +66,7 @@ let stallCount = 0;
 let hasStarted = false;
 let stationOnline = true;
 let lastSongId = null;
+let lastHistoryKey = null;
 
 /* ---------- metadata ---------- */
 
@@ -138,6 +141,56 @@ async function render(song) {
   metaEl.classList.add("enter");
 }
 
+function renderHistory(entries) {
+  // sh_id is stable per play, so the joined set is a cheap fingerprint: an unchanged
+  // history touches no DOM at all.
+  const key = entries.map((e) => e.sh_id).join(",");
+  if (key === lastHistoryKey) return;
+  lastHistoryKey = key;
+
+  historyEl.classList.toggle("hidden", entries.length === 0);
+  if (entries.length === 0) {
+    historyListEl.replaceChildren();
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  for (const entry of entries) {
+    const song = entry.song || {};
+    const played = new Date(entry.played_at * 1000);
+
+    const time = document.createElement("time");
+    time.className = "history-time";
+    time.dateTime = played.toISOString();
+    // The listener's own clock, not the station's UTC — they want to know when they
+    // heard it.
+    // Forced 24-hour: every row falls within the last hour or so, so AM/PM carries no
+    // information and only widens a column that is meant to align.
+    time.textContent = played.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    });
+
+    const artist = document.createElement("span");
+    artist.className = "history-artist";
+    artist.textContent = song.artist || "";
+
+    const title = document.createElement("span");
+    title.className = "history-title";
+    title.textContent = song.title || song.text || "Unknown track";
+
+    const row = document.createElement("li");
+    row.className = "history-row";
+    row.append(time, artist, title);
+    fragment.append(row);
+  }
+
+  // One mutation rather than five.
+  historyListEl.replaceChildren(fragment);
+}
+
 async function refreshMetadata() {
   try {
     // The endpoint sends Cache-Control: max-age=10, which would otherwise let the
@@ -148,10 +201,13 @@ async function refreshMetadata() {
     const data = await res.json();
     stationOnline = data.is_online !== false;
 
+    // Both of these go before render(), which awaits artwork decode for up to
+    // ART_TIMEOUT_MS — anything sequenced after that await inherits the delay.
+    renderHistory(data.song_history || []);
+    refreshStatus();
+
     const song = data.now_playing && data.now_playing.song;
     if (song) await render(song);
-
-    refreshStatus();
   } catch (err) {
     // A failed poll is not fatal — keep the last known metadata and keep playing.
     console.warn("Now Playing fetch failed:", err);

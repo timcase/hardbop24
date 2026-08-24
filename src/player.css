@@ -194,3 +194,60 @@ body {
   .meta .rule,
   .meta.enter { animation: none; }
 }
+
+/* Previously played — the back of the sleeve: a typographic track listing, no covers. */
+.history {
+  margin-top: 1.75rem;
+}
+
+.history-heading {
+  margin: 0 0 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--ink);
+  font-size: 0.62rem;
+  font-weight: 700;
+  font-stretch: 87.5%;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+}
+
+.history-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.75rem;
+  padding: 0.4rem 0;
+}
+
+.history-row + .history-row {
+  border-top: 1px solid rgba(22, 17, 11, 0.12);
+}
+
+.history-time {
+  grid-row: span 2;
+  font-size: 0.68rem;
+  font-weight: 500;
+  font-stretch: 87.5%;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  color: var(--smoke);
+}
+
+.history-artist {
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-stretch: 75%;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.history-title {
+  font-size: 0.72rem;
+  font-stretch: 87.5%;
+  color: var(--smoke);
+}
