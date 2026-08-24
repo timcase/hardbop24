@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Serve the player locally the way Vercel serves it: src/ as the web root.
+# That keeps the service worker scope at / , matching hbop24.lysn.bar, so local
+# behaviour and production behaviour cannot quietly diverge.
+set -euo pipefail
+
+PORT="${1:-8765}"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/src"
+
+# A server left running on this port would keep serving whatever directory it was
+# started with, which is an easy way to spend ten minutes debugging a stale file.
+if pkill -f "http.server $PORT" 2>/dev/null; then
+  echo "Stopped an existing server on port $PORT."
+  sleep 1
+fi
+
+cat <<INFO
+Hard Bop 24  ->  http://localhost:$PORT/
+serving      ->  $ROOT
+
+After editing player.js or player.css, reload twice: the service worker
+serves them stale-while-revalidate, so the first load shows the old file.
+
+Ctrl+C to stop.
+INFO
+
+exec python3 -m http.server "$PORT" --directory "$ROOT"
