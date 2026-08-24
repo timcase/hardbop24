@@ -110,7 +110,12 @@ function updateMediaSession(song, artUrl) {
     album: song.album || "",
     // Sizes are omitted deliberately: artwork dimensions vary per track, and a wrong
     // hint is worse than none — the browser fetches and measures it either way.
-    artwork: artUrl && artUrl !== BLANK_ART ? [{ src: artUrl }] : [],
+    // With no cover, hand the OS the station mark rather than nothing — it is already
+    // precached, and a blank lock screen looks like a fault.
+    artwork:
+      artUrl && artUrl !== BLANK_ART
+        ? [{ src: artUrl }]
+        : [{ src: "icons/hardbop24-512.png", sizes: "512x512", type: "image/png" }],
   });
 }
 

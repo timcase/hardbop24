@@ -106,7 +106,15 @@ body {
   aspect-ratio: 1;
   object-fit: cover;
   border: 1px solid var(--ink);
-  background: var(--smoke);
+  /* House sleeve: shows before the real cover arrives, and stays for tracks with no
+     embedded art (setArt falls back to a transparent GIF, which this shows through).
+     A loaded cover is opaque and object-fit: cover, so it paints over this entirely.
+     Living in CSS means it is painted at first style pass, before player.js runs.
+     Geometry matches assets/appicon/hardbop24.svg. */
+  background:
+    var(--flame)
+    url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200"><rect width="1200" height="1200" fill="%23ab3811"/><rect x="222.14" y="222.14" width="225.33" height="755.71" fill="%23ece5d6"/><rect x="471.09" y="222.14" width="506.77" height="755.71" fill="%23ece5d6"/></svg>')
+      center / cover no-repeat;
 }
 
 .meta { margin-top: 1.1rem; }
