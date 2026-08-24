@@ -16,8 +16,6 @@ const MOUNTS = [
     label: "Stereo \u00b7 320 kbps"
   }
 ];
-
-const MOUNT_STORAGE_KEY = "hbop24.mount";
 const METADATA_URL =
   "https://radio.lysn.bar/api/nowplaying_static/hardbop24.json";
 const POLL_MS = 10000;
@@ -248,32 +246,6 @@ function showMount() {
   setText(specEl, activeMount().label);
 }
 
-// localStorage throws outright in some privacy contexts, so every access is guarded.
-function readStoredMount() {
-  try {
-    return localStorage.getItem(MOUNT_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function storeMount(url) {
-  try {
-    localStorage.setItem(MOUNT_STORAGE_KEY, url);
-  } catch {
-    // Not being able to remember is harmless — the ladder still works.
-  }
-}
-
-// A remembered mount is a hint, not a decision: it only reorders the ladder, and a
-// failure still falls through the remaining entries as normal.
-function applyStoredMount() {
-  const stored = readStoredMount();
-  if (!stored) return;
-  const i = MOUNTS.findIndex((m) => m.url === stored);
-  if (i > 0) mountIndex = i;
-}
-
 // Returns false when the ladder is exhausted.
 function advanceMount() {
   if (mountIndex >= MOUNTS.length - 1) return false;
@@ -389,7 +361,6 @@ audio.addEventListener("playing", () => {
   resetWatchdog();
   hasStarted = true;
   mountProven = true;
-  storeMount(activeMount().url);
   setLabel();
   refreshStatus();
 });
@@ -441,7 +412,6 @@ if ("mediaSession" in navigator) {
   navigator.mediaSession.setActionHandler("stop", stopPlayback);
 }
 
-applyStoredMount();
 showMount();
 refreshStatus();
 refreshMetadata();
