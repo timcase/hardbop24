@@ -24,11 +24,16 @@
      assets/appicon/hardbop24.svg. */
   --house-sleeve: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200"><rect width="1200" height="1200" fill="%23ab3811"/><rect x="222.14" y="222.14" width="225.33" height="755.71" fill="%23ece5d6"/><rect x="471.09" y="222.14" width="506.77" height="755.71" fill="%23ece5d6"/></svg>');
 
-  --stock: "Archivo", "Archivo Narrow", "Helvetica Neue",
-           "Arial Narrow", Arial, sans-serif;
+  --stock:
+    "Archivo", "Archivo Narrow", "Helvetica Neue", "Arial Narrow", Arial,
+    sans-serif;
 }
 
-*, *::before, *::after { box-sizing: border-box; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
@@ -69,7 +74,9 @@ body {
   text-indent: 0.34em; /* offsets the trailing letter-space so the text sits optically centred */
 }
 
-.jacket { padding: 1.25rem; }
+.jacket {
+  padding: 1.25rem;
+}
 
 .masthead {
   display: flex;
@@ -100,10 +107,16 @@ body {
   vertical-align: 0.05em;
 }
 
-.badge.off { color: var(--smoke); }
-.badge.off::before { background: var(--smoke); }
+.badge.off {
+  color: var(--smoke);
+}
+.badge.off::before {
+  background: var(--smoke);
+}
 
-.spec { color: var(--smoke); }
+.spec {
+  color: var(--smoke);
+}
 
 .art {
   display: block;
@@ -117,7 +130,9 @@ body {
   background: var(--flame) var(--house-sleeve) center / cover no-repeat;
 }
 
-.meta { margin-top: 1.1rem; }
+.meta {
+  margin-top: 1.1rem;
+}
 
 .title {
   margin: 0;
@@ -147,6 +162,7 @@ body {
   letter-spacing: 0.07em;
 }
 
+.year,
 .album {
   margin: 0.3rem 0 0;
   font-size: 0.68rem;
@@ -174,7 +190,9 @@ body {
   cursor: pointer;
 }
 
-.toggle:hover { background: var(--flame); }
+.toggle:hover {
+  background: var(--flame);
+}
 
 .toggle:focus-visible {
   outline: 3px solid var(--flame);
@@ -186,21 +204,36 @@ body {
   color: var(--flame);
 }
 
-.hidden { display: none; }
+.hidden {
+  display: none;
+}
 
 /* Motion: one moment only — a new record dropping. The rule draws in and the type
    settles, on load and whenever the track changes. */
-@keyframes draw { from { width: 0; } }
+@keyframes draw {
+  from {
+    width: 0;
+  }
+}
 @keyframes settle {
-  from { opacity: 0; transform: translateY(0.4rem); }
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
 }
 
-.meta .rule { animation: draw 0.55s cubic-bezier(0.2, 0.85, 0.25, 1) both; }
-.meta.enter { animation: settle 0.45s ease-out both; }
+.meta .rule {
+  animation: draw 0.55s cubic-bezier(0.2, 0.85, 0.25, 1) both;
+}
+.meta.enter {
+  animation: settle 0.45s ease-out both;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .meta .rule,
-  .meta.enter { animation: none; }
+  .meta.enter {
+    animation: none;
+  }
 }
 
 /* Previously played — the back of the sleeve: a typographic track listing, no covers. */
@@ -227,16 +260,16 @@ body {
 
 .history-row {
   display: grid;
-  grid-template-columns: 2.5rem auto 1fr;
+  grid-template-columns: 3.5rem 1fr;
   column-gap: 0.65rem;
   align-items: center;
   padding: 0.4rem 0;
 }
 
 .history-art {
-  grid-row: span 2;
-  width: 2.5rem;
-  height: 2.5rem;
+  grid-row: span 4;
+  width: 3.5rem;
+  height: 3.5rem;
   aspect-ratio: 1;
   object-fit: cover;
   border: 1px solid var(--ink);
@@ -248,7 +281,7 @@ body {
 }
 
 .history-time {
-  grid-row: span 2;
+  margin-top: 0.3rem;
   font-size: 0.68rem;
   font-weight: 500;
   font-stretch: 87.5%;
@@ -257,7 +290,7 @@ body {
   color: var(--smoke);
 }
 
-.history-artist {
+.history-title {
   font-size: 0.68rem;
   font-weight: 700;
   font-stretch: 75%;
@@ -265,8 +298,15 @@ body {
   letter-spacing: 0.06em;
 }
 
-.history-title {
+.history-artist {
   font-size: 0.72rem;
   font-stretch: 87.5%;
+  color: var(--smoke);
+}
+
+.history-album {
+  font-size: 0.72rem;
+  font-stretch: 87.5%;
+  font-style: italic;
   color: var(--smoke);
 }

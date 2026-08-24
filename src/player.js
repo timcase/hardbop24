@@ -167,6 +167,28 @@ async function render(song) {
   metaEl.classList.add("enter");
 }
 
+// "3m ago" reads at a glance where a clock face demands the listener do the
+// subtraction themselves — and every row here is recent enough that words stay short.
+function timeAgo(date) {
+  const seconds = Math.round((Date.now() - date.getTime()) / 1000);
+  if (seconds < 5) return "just now";
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return `${days}d ago`;
+}
+
+// Words go stale as the clock ticks even when the history list itself hasn't changed,
+// so this runs on every poll independent of renderHistory's unchanged-fingerprint skip.
+function refreshHistoryTimes() {
+  for (const time of historyListEl.querySelectorAll(".history-time")) {
+    time.textContent = timeAgo(new Date(time.dateTime));
+  }
+}
+
 function renderHistory(entries) {
   // sh_id is stable per play, so the joined set is a cheap fingerprint: an unchanged
   // history touches no DOM at all.
@@ -189,15 +211,7 @@ function renderHistory(entries) {
     const time = document.createElement("time");
     time.className = "history-time";
     time.dateTime = played.toISOString();
-    // The listener's own clock, not the station's UTC — they want to know when they
-    // heard it.
-    // Forced 24-hour: every row falls within the last hour or so, so AM/PM carries no
-    // information and only widens a column that is meant to align.
-    time.textContent = played.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false
-    });
+    time.textContent = timeAgo(played);
 
     const artist = document.createElement("span");
     artist.className = "history-artist";
@@ -207,20 +221,25 @@ function renderHistory(entries) {
     title.className = "history-title";
     title.textContent = song.title || song.text || "Unknown track";
 
+    const album = document.createElement("span");
+    album.className = "history-album";
+    album.textContent = song.album || "";
+    album.classList.toggle("hidden", !song.album);
+
     const thumb = document.createElement("img");
     thumb.className = "history-art";
     // Explicit dimensions so the row reserves its box and nothing shifts as covers
     // arrive. Deliberately not loading="lazy": every row is visible immediately, so it
     // would only delay them.
-    thumb.width = 40;
-    thumb.height = 40;
+    thumb.width = 56;
+    thumb.height = 56;
     thumb.decoding = "async";
     thumb.alt = "";
     thumb.src = resolveArt(song) || BLANK_ART;
 
     const row = document.createElement("li");
     row.className = "history-row";
-    row.append(thumb, time, artist, title);
+    row.append(thumb, title, artist, album, time);
     fragment.append(row);
   }
 
@@ -241,6 +260,7 @@ async function refreshMetadata() {
     // Both of these go before render(), which awaits artwork decode for up to
     // ART_TIMEOUT_MS — anything sequenced after that await inherits the delay.
     renderHistory(data.song_history || []);
+    refreshHistoryTimes();
     refreshStatus();
 
     const song = data.now_playing && data.now_playing.song;
