@@ -9,7 +9,9 @@
   src: url("fonts/archivo-latin-var.woff2") format("woff2-variations");
   font-weight: 400 900;
   font-stretch: 62.5% 125%;
-  font-display: swap;
+  /* optional (not swap): if the font isn't ready by first paint, skip the swap rather than
+     reflow into it later — a font-metric mismatch on the masthead was CLS's biggest culprit. */
+  font-display: optional;
 }
 
 :root {
