@@ -258,6 +258,10 @@ body {
   margin: 0;
   padding: 0;
   list-style: none;
+  /* The metadata poll populates this after first paint (the API always returns 5
+     entries), so reserve its settled height up front rather than letting the section
+     grow into it and shift everything below. */
+  min-height: calc(5 * (3.5rem + 0.8rem));
 }
 
 .history-row {
