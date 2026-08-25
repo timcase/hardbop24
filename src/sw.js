@@ -1,5 +1,5 @@
 // Hard Bop 24 service worker. Bump CACHE to force a clean re-precache.
-const CACHE = "hardbop24-v1";
+const CACHE = "hardbop24-v2";
 
 const SHELL = [
   "./",
