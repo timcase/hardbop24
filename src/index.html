@@ -10,8 +10,10 @@
     <title>Hard Bop 24</title>
     <!-- Warms DNS/TLS to the station while the HTML parses: the metadata poll and
          the sleeve fetch both go there, and the sleeve URL is not known until the
-         metadata returns. -->
-    <link rel="preconnect" href="https://radio.lysn.bar" crossorigin />
+         metadata returns. No `crossorigin`: the art <img> tags are plain, uncredentialed
+         loads, and they carry far more bytes than the metadata fetch, so the connection
+         pool this opens should match them, not the fetch() call. -->
+    <link rel="preconnect" href="https://radio.lysn.bar" />
     <link rel="stylesheet" href="player.css" />
 
     <link rel="icon" href="icons/hardbop24.svg" type="image/svg+xml" />
@@ -41,6 +43,7 @@
           class="art"
           src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
           alt=""
+          fetchpriority="high"
         />
 
         <div class="meta" id="meta">
