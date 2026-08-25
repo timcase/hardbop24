@@ -116,6 +116,9 @@ function setArt(url) {
   // Reassigning an identical src would re-decode the image and flicker on every poll.
   if (!url) url = BLANK_ART;
   if (art.src === url) return;
+  // The markup's fetchpriority="high" only covers the request made at parse time; this
+  // element's real src is assigned later, so the hint has to be reapplied here too.
+  art.fetchPriority = "high";
   art.src = url;
 }
 
