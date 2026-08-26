@@ -464,6 +464,22 @@ window.addEventListener("online", () => {
 });
 window.addEventListener("offline", refreshStatus);
 
+// iOS Safari can silently freeze playback when another app takes audio focus: the
+// element still reports paused === false, but currentTime stops advancing (the same
+// failure the stall watchdog above exists to catch). Waiting for that watchdog's normal
+// cadence here would take up to STALL_LIMIT * WATCHDOG_MS after the tab is back in view,
+// so probe immediately on return instead of waiting for the next scheduled check.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  if (!wantsPlayback || reconnecting || reconnectTimer) return;
+
+  const probeTime = audio.currentTime;
+  setTimeout(() => {
+    if (!wantsPlayback || reconnecting || reconnectTimer) return;
+    if (audio.currentTime === probeTime) scheduleReconnect();
+  }, 1500);
+});
+
 if ("mediaSession" in navigator) {
   navigator.mediaSession.setActionHandler("play", startPlayback);
   navigator.mediaSession.setActionHandler("pause", stopPlayback);
